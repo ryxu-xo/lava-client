@@ -24,6 +24,7 @@
 - 🔊 **Volume Control** - 0-100% volume adjustment
 - 🔍 **Multi-Platform Search** - YouTube, YouTube Music, SoundCloud support
 - 📊 **Position Tracking** - Real-time playback position updates
+- 🤖 **Intelligent AutoPlay** - Automatically plays related tracks when queue ends (YouTube, SoundCloud, Spotify)
 
 ### Audio Filters
 - 🎚️ **10 Filter Types** - Volume, Equalizer, Karaoke, Timescale, Tremolo, Vibrato, Rotation, Distortion, ChannelMix, LowPass
@@ -58,7 +59,9 @@ const manager = new Manager({
   send: (guildId, payload) => {
     const guild = client.guilds.cache.get(guildId);
     if (guild) guild.shard.send(payload);
-  }
+  },
+  autoPlay: true, // Enable intelligent AutoPlay
+  debug: false // Disable debug logging
 });
 
 // Initialize manager after client is ready
@@ -68,7 +71,9 @@ client.on('ready', () => {
 
 // Forward voice state updates
 client.on('raw', (packet) => {
-  manager.updateVoiceState(packet);
+  if (manager.isInitialized()) {
+    manager.updateVoiceState(packet);
+  }
 });
 
 // Listen to events

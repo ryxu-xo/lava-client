@@ -20,12 +20,16 @@
     "websocket",
     "rest-api"
   ],
-  "author": "",
+  "author": "ryxu-xo <https://github.com/ryxu-xo>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/lava.ts"
+    "url": "https://github.com/ryxu-xo/lava.ts"
   },
+  "bugs": {
+    "url": "https://github.com/ryxu-xo/lava.ts/issues"
+  },
+  "homepage": "https://github.com/ryxu-xo/lava.ts#readme",
   "engines": {
     "node": ">=16.0.0"
   },

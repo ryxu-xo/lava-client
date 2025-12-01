@@ -607,4 +607,5 @@ setInterval(async () => {
 - Verify source managers are configured in Lavalink
 - Test with different search queries/URLs
 
-For more help, check the [GitHub Issues](https://github.com/yourusername/lava.ts/issues).
+For more help, check the [GitHub Issues](https://github.com/ryxu-xo/lava.ts/issues).
+

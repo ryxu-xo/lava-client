@@ -4,12 +4,97 @@ This guide covers advanced features and patterns for using Lava.ts.
 
 ## Table of Contents
 
+- [Plugin System](#plugin-system)
 - [Custom Load Balancing](#custom-load-balancing)
 - [Advanced Filter Configurations](#advanced-filter-configurations)
 - [Queue Management](#queue-management)
+- [Playback Features](#playback-features)
 - [Error Handling](#error-handling)
 - [Custom Events](#custom-events)
 - [Performance Optimization](#performance-optimization)
+
+## Plugin System
+
+Lava.ts includes a powerful plugin system for extending functionality:
+
+### Creating a Plugin
+
+```typescript
+import { LavaPlugin, Manager } from 'lava.ts';
+
+const myPlugin: LavaPlugin = {
+  name: 'MyPlugin',
+  
+  onLoad(manager: Manager) {
+    console.log('Plugin loaded!');
+  },
+  
+  onUnload(manager: Manager) {
+    console.log('Plugin unloaded');
+  },
+  
+  onEvent(event: string, ...args: any[]) {
+    if (event === 'trackStart') {
+      const [player, track] = args;
+      console.log(`Now playing: ${track.info.title}`);
+    }
+  }
+};
+
+// Register plugin
+manager.use(myPlugin);
+```
+
+### Voice Status Plugin Example
+
+```typescript
+import { LavaVoiceStatusPlugin } from 'lava-voice-status';
+
+const voiceStatus = new LavaVoiceStatusPlugin(client, {
+  template: 'Now playing: {title} by {author}',
+});
+
+manager.use({
+  name: 'VoiceStatus',
+  onEvent(event, ...args) {
+    if (event === 'trackStart') {
+      const [player, track] = args;
+      voiceStatus.setVoiceStatus(player.voiceChannelId, track.info);
+    }
+    if (event === 'trackEnd') {
+      const [player] = args;
+      voiceStatus.clearVoiceStatus(player.voiceChannelId);
+    }
+  }
+});
+```
+
+### Activity Status Plugin
+
+```typescript
+manager.use({
+  name: 'BotActivityStatus',
+  onEvent(event, ...args) {
+    if (event === 'trackStart') {
+      const [player, track] = args;
+      player.client.user.setPresence({
+        activities: [{
+          name: `${track.info.title} - ${track.info.author}`,
+          type: 2 // Listening
+        }],
+        status: 'online'
+      });
+    }
+    if (event === 'trackEnd') {
+      const [player] = args;
+      player.client.user.setPresence({
+        activities: [],
+        status: 'idle'
+      });
+    }
+  }
+});
+```
 
 ## Custom Load Balancing
 
@@ -150,31 +235,133 @@ player.queue.sort((a, b) => a.info.length - b.info.length);
 
 ### Loop Modes
 
-Implement custom loop functionality:
+Loop modes are built-in and ready to use:
 
 ```typescript
-class LoopablePlayer extends Player {
-  private loopMode: 'none' | 'track' | 'queue' = 'none';
+const player = manager.get(guildId);
 
-  public setLoopMode(mode: 'none' | 'track' | 'queue'): void {
-    this.loopMode = mode;
-  }
+// Set loop mode
+player.setLoopMode('track');  // Loop current track
+player.setLoopMode('queue');  // Loop entire queue
+player.setLoopMode('off');    // No looping
 
-  public async handleTrackEnd(reason: string): Promise<void> {
-    if (reason === 'finished') {
-      if (this.loopMode === 'track' && this.track) {
-        // Replay current track
-        await this.play(this.track);
-        return;
-      } else if (this.loopMode === 'queue' && this.track) {
-        // Add current track to end of queue
-        this.addTrack(this.track);
-      }
-    }
+// Loop modes work automatically with track end handling
+// Track loop: replays the same track
+// Queue loop: adds finished track to end of queue
+```
 
-    await super.handleTrackEnd(reason);
-  }
+### Playback History
+
+```typescript
+const player = manager.get(guildId);
+
+// Get playback history (last 50 tracks by default)
+const history = player.getHistory();
+console.log(`Recently played: ${history.map(t => t.info.title).join(', ')}`);
+
+// Clear history
+player.clearHistory();
+
+// Use previous() to go back
+await player.previous(); // Plays last track
+```
+
+### Queue Persistence
+
+```typescript
+// Save queue state to database/file
+const queueData = player.saveQueue();
+await saveToDatabase(guildId, queueData);
+
+// Restore queue later
+const savedData = await loadFromDatabase(guildId);
+if (savedData) {
+  await player.restoreQueue(savedData);
+  // Queue, volume, loop mode, and position are restored
 }
+```
+
+## Playback Features
+
+### Speed and Pitch Control
+
+```typescript
+const player = manager.get(guildId);
+
+// Independent speed control (0.25 - 3.0)
+await player.setSpeed(1.5); // 1.5x speed, normal pitch
+
+// Independent pitch control (0.25 - 3.0)
+await player.setPitch(1.2); // Higher pitch, normal speed
+
+// Set both together
+await player.setSpeedAndPitch(1.25, 0.9); // Faster, lower pitch
+```
+
+### Crossfade
+
+```typescript
+// Enable crossfade between tracks (in milliseconds)
+player.setCrossfade(3000); // 3-second crossfade
+
+// Tracks will fade in/out smoothly when changing
+```
+
+### Volume Normalization
+
+```typescript
+// Enable volume normalization for consistent loudness
+player.setVolumeNormalization(true);
+
+// Disable normalization
+player.setVolumeNormalization(false);
+```
+
+### Voice Region Optimization
+
+```typescript
+// Configure nodes with regions
+const manager = new Manager({
+  nodes: [
+    {
+      name: 'US Node',
+      host: 'us.lavalink.example.com',
+      port: 2333,
+      password: 'password',
+      region: 'us-east', // Voice region
+    },
+    {
+      name: 'EU Node',
+      host: 'eu.lavalink.example.com',
+      port: 2333,
+      password: 'password',
+      region: 'europe',
+    },
+  ],
+});
+
+// Library automatically selects best node based on voice region
+// Lower latency for users in matching regions
+```
+
+### AutoPlay with Spotify Recommendations
+
+```typescript
+// AutoPlay now uses Spotify's recommendation API (sprec:)
+// When a Spotify track ends, it gets actual recommendations
+// instead of just random tracks from the same artist
+
+const manager = new Manager({
+  autoPlay: true,
+  defaultSearchPlatform: 'spsearch', // Use Spotify by default
+  // ...
+});
+
+// AutoPlay works automatically:
+// 1. Track ends
+// 2. Gets Spotify recommendations (sprec:trackId)
+// 3. Falls back to artist search if recommendations fail
+// 4. Plays next recommended track
 ```
 
 ## Error Handling

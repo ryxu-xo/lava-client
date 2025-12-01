@@ -596,16 +596,18 @@ export class Player {
       try {
         const success = await this.autoPlayEngine.execute(this, previousTrack);
         if (success) {
+          this.eventEmitter.emit('debug', 'AutoPlay succeeded, continuing playback');
           return; // AutoPlay added a track and started playing
         }
         this.eventEmitter.emit('debug', 'AutoPlay failed to find related tracks');
       } catch (error) {
-        this.eventEmitter.emit('debug', `AutoPlay error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        this.eventEmitter.emit('debug', `AutoPlay error: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 
-    // Emit queueEnd if nothing to play
-    if (this.queue.length === 0) {
+    // Only emit queueEnd if queue is still empty after AutoPlay attempt
+    if (this.queue.length === 0 && !this.track) {
+      this.eventEmitter.emit('debug', 'Queue is empty, emitting queueEnd');
       this.eventEmitter.emit('queueEnd', this);
     }
   }

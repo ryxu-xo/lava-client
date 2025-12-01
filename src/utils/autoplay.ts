@@ -110,7 +110,15 @@ export class AutoPlay {
 
     // Pick a random track
     const randomTrack = availableTracks[Math.floor(Math.random() * availableTracks.length)];
+    
+    if (!randomTrack) {
+      player['eventEmitter'].emit('debug', '[AutoPlay] Failed to select random track');
+      return false;
+    }
+    
     player.addTrack(randomTrack);
+    player['eventEmitter'].emit('debug', `[AutoPlay] Track added to queue: ${randomTrack.info.title}, queue length: ${player.queue.length}`);
+    
     await player.play();
     
     player['eventEmitter'].emit('debug', `[AutoPlay] Added YouTube track: ${randomTrack.info.title}`);
@@ -154,7 +162,15 @@ export class AutoPlay {
     }
 
     const randomTrack = availableTracks[Math.floor(Math.random() * availableTracks.length)];
+    
+    if (!randomTrack) {
+      player['eventEmitter'].emit('debug', '[AutoPlay] Failed to select random SoundCloud track');
+      return false;
+    }
+    
     player.addTrack(randomTrack);
+    player['eventEmitter'].emit('debug', `[AutoPlay] Track added to queue: ${randomTrack.info.title}, queue length: ${player.queue.length}`);
+    
     await player.play();
     
     player['eventEmitter'].emit('debug', `[AutoPlay] Added SoundCloud track: ${randomTrack.info.title}`);
@@ -162,22 +178,89 @@ export class AutoPlay {
   }
 
   /**
-   * Spotify AutoPlay - Search for artist tracks and pick a random one
+   * Spotify AutoPlay - Use Spotify recommendations API
    */
   private async handleSpotify(player: Player, previousTrack: Track): Promise<boolean> {
-    const title = previousTrack.info.title;
-    const artist = previousTrack.info.author;
+    const identifier = previousTrack.info.identifier;
 
-    if (!title || !artist) {
-      player['eventEmitter'].emit('debug', '[AutoPlay] Missing title or artist for Spotify track');
+    if (!identifier) {
+      player['eventEmitter'].emit('debug', '[AutoPlay] Missing identifier for Spotify track');
       return false;
     }
 
-    // Step 1: Search for matching artist on Spotify
+    // Try using Spotify recommendations endpoint (sprec:)
+    player['eventEmitter'].emit('debug', `[AutoPlay] Getting Spotify recommendations for: ${identifier}`);
+    const recResult = await player.search(`sprec:${identifier}`, 'spsearch');
+
+    if (recResult.loadType === 'error' || recResult.loadType === 'empty') {
+      player['eventEmitter'].emit('debug', '[AutoPlay] Spotify recommendations failed, falling back to artist search');
+      // Fallback to artist search
+      return this.handleSpotifyArtistFallback(player, previousTrack);
+    }
+
+    let tracks: Track[] = [];
+    if (recResult.loadType === 'playlist') {
+      tracks = recResult.data.tracks;
+    } else if (recResult.loadType === 'search') {
+      tracks = recResult.data;
+    } else if (recResult.loadType === 'track') {
+      tracks = [recResult.data];
+    }
+
+    if (!tracks.length) {
+      player['eventEmitter'].emit('debug', '[AutoPlay] No recommendations found, falling back to artist search');
+      return this.handleSpotifyArtistFallback(player, previousTrack);
+    }
+
+    // Filter out previously played tracks
+    let available = tracks.filter(t => {
+      const id = t.info.identifier || t.info.uri;
+      return id && !this.playedIdentifiers.has(id);
+    });
+
+    if (!available.length) {
+      available = tracks;
+      player['eventEmitter'].emit('debug', '[AutoPlay] All recommendations played, resetting filter');
+    }
+
+    if (!available.length) {
+      return false;
+    }
+
+    // Pick a random recommended track
+    const randomTrack = available[Math.floor(Math.random() * available.length)];
+
+    if (!randomTrack) {
+      player['eventEmitter'].emit('debug', '[AutoPlay] Failed to select random Spotify track');
+      return false;
+    }
+
+    player.addTrack(randomTrack);
+    player['eventEmitter'].emit('debug', `[AutoPlay] Track added to queue: ${randomTrack.info.title}, queue length: ${player.queue.length}`);
+    
+    await player.play();
+
+    player['eventEmitter'].emit(
+      'debug',
+      `[AutoPlay] Added Spotify recommended track: ${randomTrack.info.title}`
+    );
+
+    return true;
+  }
+
+  /**
+   * Fallback: Search for artist tracks when recommendations fail
+   */
+  private async handleSpotifyArtistFallback(player: Player, previousTrack: Track): Promise<boolean> {
+    const artist = previousTrack.info.author;
+
+    if (!artist) {
+      return false;
+    }
+
     const artistResult = await player.search(`${artist}`, 'spsearch');
 
     if (artistResult.loadType === 'empty' || artistResult.loadType === 'error') {
-      player['eventEmitter'].emit('debug', '[AutoPlay] Spotify artist search failed');
       return false;
     }
 
@@ -190,11 +273,9 @@ export class AutoPlay {
     }
 
     if (!artistTracks.length) {
-      player['eventEmitter'].emit('debug', '[AutoPlay] No tracks found for artist');
       return false;
     }
 
-    // Filter out previously played Spotify tracks
     let available = artistTracks.filter(t => {
       const id = t.info.identifier || t.info.uri;
       return id && !this.playedIdentifiers.has(id);
@@ -202,22 +283,27 @@ export class AutoPlay {
 
     if (!available.length) {
       available = artistTracks;
-      player['eventEmitter'].emit('debug', '[AutoPlay] All artist tracks played, resetting filter');
     }
 
     if (!available.length) {
       return false;
     }
 
-    // Pick a random Spotify track
     const randomTrack = available[Math.floor(Math.random() * available.length)];
 
+    if (!randomTrack) {
+      player['eventEmitter'].emit('debug', '[AutoPlay] Failed to select random artist track');
+      return false;
+    }
+
     player.addTrack(randomTrack);
+    player['eventEmitter'].emit('debug', `[AutoPlay] Track added to queue: ${randomTrack.info.title}, queue length: ${player.queue.length}`);
+    
     await player.play();
 
     player['eventEmitter'].emit(
       'debug',
-      `[AutoPlay] Added Spotify recommended track: ${randomTrack.info.title}`
+      `[AutoPlay] Added Spotify artist track (fallback): ${randomTrack.info.title}`
     );
 
     return true;

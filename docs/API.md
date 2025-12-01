@@ -28,8 +28,9 @@ new Manager(options: ManagerOptions)
 - `options.send` - Function to send Discord gateway payloads
 - `options.clientId?` - Bot client ID (can be set in init)
 - `options.shards?` - Number of shards (default: 1)
-- `options.autoPlay?` - Auto-play next track (default: true)
-- `options.defaultSearchPlatform?` - Default search platform (default: 'ytsearch')
+- `options.autoPlay?` - Auto-play related tracks when queue ends (default: true)
+- `options.defaultSearchPlatform?` - Default search platform (default: 'spsearch')
+- `options.debug?` - Enable debug logging (default: false)
 
 ### Methods
 
@@ -68,6 +69,12 @@ Perform health check on all nodes.
 
 #### `destroyAll(): Promise<void>`
 Destroy all players and disconnect from all nodes.
+
+#### `use(plugin: LavaPlugin): void`
+Register a plugin with the manager.
+
+#### `unloadPlugins(): void`
+Unload all registered plugins.
 
 ### Events
 
@@ -142,7 +149,11 @@ Manages audio playback for a guild.
 - `position: number` - Current position in ms
 - `connected: boolean` - Connection state
 - `queue: Track[]` - Queue of upcoming tracks
-- `previousTracks: Track[]` - History of played tracks
+- `previousTracks: Track[]` - History of played tracks (last 10)
+- `history: Track[]` - Full playback history (last 50)
+- `loopMode: 'off' | 'track' | 'queue'` - Current loop mode
+- `crossfadeDuration: number` - Crossfade duration in ms
+- `volumeNormalization: boolean` - Volume normalization state
 
 ### Methods
 
@@ -217,6 +228,36 @@ Get total queue duration in milliseconds.
 
 #### `moveTrack(from: number, to: number): boolean`
 Move a track in the queue.
+
+#### `setLoopMode(mode: 'off' | 'track' | 'queue'): void`
+Set the loop mode.
+
+#### `getHistory(): Track[]`
+Get playback history (last 50 tracks).
+
+#### `clearHistory(): void`
+Clear playback history.
+
+#### `setCrossfade(duration: number): void`
+Set crossfade duration in milliseconds.
+
+#### `setVolumeNormalization(enabled: boolean): void`
+Enable or disable volume normalization.
+
+#### `setSpeed(speed: number): Promise<void>`
+Set playback speed (0.25 - 3.0), independent of pitch.
+
+#### `setPitch(pitch: number): Promise<void>`
+Set playback pitch (0.25 - 3.0), independent of speed.
+
+#### `setSpeedAndPitch(speed: number, pitch: number): Promise<void>`
+Set both speed and pitch simultaneously.
+
+#### `saveQueue(): string`
+Save queue state to JSON string for persistence.
+
+#### `restoreQueue(data: string): Promise<void>`
+Restore queue from saved JSON data.
 
 ---
 
@@ -351,6 +392,8 @@ interface NodeOptions {
   resumeTimeout?: number;
   maxReconnectAttempts?: number;
   reconnectDelay?: number;
+  region?: string;  // Voice region for optimization
+  retryStrategy?: 'exponential' | 'linear' | 'none';  // Reconnection strategy
 }
 
 interface PlayerOptions {
@@ -466,8 +509,11 @@ type SearchPlatformType =
   | 'ytsearch'   // YouTube
   | 'ytmsearch'  // YouTube Music
   | 'scsearch'   // SoundCloud
-  | 'spsearch'   // Spotify
-  | 'amsearch';  // Apple Music
+  | 'spsearch'   // Spotify (requires LavaSrc plugin)
+  | 'sprec'      // Spotify recommendations (requires LavaSrc)
+  | 'amsearch'   // Apple Music (requires LavaSrc)
+  | 'dzsearch'   // Deezer (requires LavaSrc)
+  | 'ymsearch';  // Yandex Music (requires LavaSrc)
 ```
 
 ---

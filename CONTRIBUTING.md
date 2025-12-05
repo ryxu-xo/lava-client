@@ -1,3 +1,8 @@
+/*
+* lavaflow Contributing
+*/
+
+
 # Contributing to lavaflow
 
 Thank you for your interest in contributing to lavaflow! This document provides guidelines and instructions for contributing.

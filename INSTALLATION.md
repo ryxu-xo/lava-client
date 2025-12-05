@@ -1,3 +1,8 @@
+/*
+* lavaflow Installation
+*/
+
+
 # Installation & Setup Guide
 
 Complete guide for installing and setting up lavaflow in your project.

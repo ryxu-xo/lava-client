@@ -1,9 +1,9 @@
-# Lava-ts
+# lava-client
 
 > A professional-grade, TypeScript-first Lavalink v4 client library for Node.js
 
-[![npm version](https://img.shields.io/npm/v/lava-ts.svg)](https://www.npmjs.com/package/lava-ts)
-[![License](https://img.shields.io/npm/l/lava-ts.svg)](LICENSE)
+[![npm version](https://img.shields.io/npm/v/lava.ts.svg)](https://www.npmjs.com/package/lava.ts)
+[![License](https://img.shields.io/npm/l/lava.ts.svg)](LICENSE)
 
 ## Features
 
@@ -46,13 +46,13 @@
 ## Installation
 
 ```bash
-npm install lava-ts
+npm install lava-client
 ```
 
 ## Quick Start
 
 ```typescript
-import { Manager } from 'lava-ts';
+import { Manager } from 'lava-client';
 import { Client } from 'discord.js';
 
 const client = new Client({ intents: ['Guilds', 'GuildVoiceStates'] });
@@ -130,7 +130,7 @@ player.setCrossfade(3000);   // 3 second crossfade
 player.setVolumeNormalization(true); // Enable normalization
 
 // Favorites
-import { FavoritesManager } from 'lava-ts';
+import { FavoritesManager } from 'lava-client';
 const favorites = new FavoritesManager();
 favorites.addUserFavorite('userId', track);
 favorites.addGuildFavorite('guildId', track, 'userId');
@@ -146,7 +146,7 @@ const history = player.getHistory(); // Last 50 tracks
 player.clearHistory();
 
 // Metadata cache
-import { MetadataCache } from 'lava-ts';
+import { MetadataCache } from 'lava-client';
 const cache = new MetadataCache(1000, 3600000); // 1000 items, 1 hour TTL
 const cachedTrack = cache.get('identifier');
 if (!cachedTrack) {
@@ -205,7 +205,7 @@ player.filters()
 
 ## AutoPlay Feature
 
-lava-ts includes intelligent AutoPlay that automatically finds and plays related tracks when your queue ends:
+Lava.ts includes intelligent AutoPlay that automatically finds and plays related tracks when your queue ends:
 
 - **YouTube**: Uses YouTube's recommendation system (RD playlists)
 - **SoundCloud**: Searches for similar tracks by artist/title
@@ -225,7 +225,7 @@ const manager = new Manager({
 Lava.ts supports custom plugins to extend functionality:
 
 ```typescript
-import { Manager, LavaPlugin } from 'lava-ts';
+import { Manager, LavaPlugin } from 'lava-client';
 
 const myPlugin: LavaPlugin = {
   name: 'MyPlugin',

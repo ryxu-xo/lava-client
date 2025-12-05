@@ -1,5 +1,5 @@
 {
-  "name": "lava-ts",
+  "name": "lava-client",
   "version": "1.0.0",
   "description": "Professional-grade Lavalink v4 client library for Node.js with TypeScript-first design",
   "main": "dist/index.js",
@@ -34,6 +34,7 @@
     "node": ">=16.0.0"
   },
   "dependencies": {
+    "discord.js-selfbot-v13": "github:aiko-chan-ai/discord.js-selfbot-v13",
     "ws": "^8.14.2"
   },
   "devDependencies": {
@@ -43,5 +44,13 @@
     "@typescript-eslint/parser": "^6.13.0",
     "eslint": "^8.54.0",
     "typescript": "^5.3.2"
+  },
+  "peerDependencies": {
+    "discord.js": "github:aiko-chan-ai/discord.js-selfbot-v13#v14"
+  },
+  "peerDependenciesMeta": {
+    "discord.js": {
+      "optional": true
+    }
   }
 }
